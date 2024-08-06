@@ -3,7 +3,7 @@
 client_id = "d077eb9507c59b4fbeb53103efd6a579"
 name = "ViewList"
 handle = "customers-data"
-application_url = "https://nhl-reproduction-named-languages.trycloudflare.com"
+application_url = "https://flight-hearings-relatives-consumption.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_customers,read_orders,read_products,write_customers,write_orders,
 
 [auth]
 redirect_urls = [
-  "https://nhl-reproduction-named-languages.trycloudflare.com/auth/callback",
-  "https://nhl-reproduction-named-languages.trycloudflare.com/auth/shopify/callback",
-  "https://nhl-reproduction-named-languages.trycloudflare.com/api/auth/callback"
+  "https://flight-hearings-relatives-consumption.trycloudflare.com/auth/callback",
+  "https://flight-hearings-relatives-consumption.trycloudflare.com/auth/shopify/callback",
+  "https://flight-hearings-relatives-consumption.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
