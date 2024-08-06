@@ -1,9 +1,9 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "d077eb9507c59b4fbeb53103efd6a579"
-name = "customers-data"
+name = "ViewList"
 handle = "customers-data"
-application_url = "https://measuring-volkswagen-undertaken-matthew.trycloudflare.com"
+application_url = "https://nhl-reproduction-named-languages.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_customers,read_orders,read_products,write_customers,write_orders,
 
 [auth]
 redirect_urls = [
-  "https://measuring-volkswagen-undertaken-matthew.trycloudflare.com/auth/callback",
-  "https://measuring-volkswagen-undertaken-matthew.trycloudflare.com/auth/shopify/callback",
-  "https://measuring-volkswagen-undertaken-matthew.trycloudflare.com/api/auth/callback"
+  "https://nhl-reproduction-named-languages.trycloudflare.com/auth/callback",
+  "https://nhl-reproduction-named-languages.trycloudflare.com/auth/shopify/callback",
+  "https://nhl-reproduction-named-languages.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

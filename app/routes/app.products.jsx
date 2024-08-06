@@ -1,35 +1,32 @@
-import { Card, DataTable, Frame, Layout, Page, Text, Thumbnail } from "@shopify/polaris";
-import { authenticate } from "../shopify.server";
 import { json } from "@remix-run/node";
+import { authenticate } from "../shopify.server";
+import { Card, DataTable, Frame, Layout, Page, Text, Thumbnail } from "@shopify/polaris";
 import { useLoaderData } from "@remix-run/react";
 
-// Loader function to fetch data from Shopify API
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const response = await admin.graphql(`
-    {
-      products(first: 10) {
+    query {
+      orders(first: 250) {
         edges {
           node {
             id
-            title
-            handle
-            status
-            images(first: 1) {
+            lineItems(first: 250) {
               edges {
                 node {
-                  url
-                  altText
-                }
-              }
-            }
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
+                  product {
+                    id
+                    title
+                    images(first: 1) {
+                      edges {
+                        node {
+                          url
+                          altText
+                        }
+                      }
+                    }
+                  }
+                  quantity
                 }
               }
             }
@@ -39,24 +36,45 @@ export const loader = async ({ request }) => {
     }
   `);
 
-  // Parse and format the response
   const responseJson = await response.json();
-  console.log(responseJson.data.products.edges);
-  return json(responseJson.data.products);
+  const orders = responseJson.data.orders.edges;
+
+  // Aggregate quantities
+  const productQuantities = {};
+
+  orders.forEach(order => {
+    order.node.lineItems.edges.forEach(lineItem => {
+      const productId = lineItem.node.product.id;
+      const quantity = lineItem.node.quantity;
+      if (!productQuantities[productId]) {
+        productQuantities[productId] = {
+          id: productId,
+          title: lineItem.node.product.title,
+          totalQuantity: 0,
+          imageUrl: lineItem.node.product.images.edges[0]?.node.url || 'https://via.placeholder.com/150',
+          imageAlt: lineItem.node.product.images.edges[0]?.node.altText || 'Product Image'
+        };
+      }
+      productQuantities[productId].totalQuantity += quantity;
+    });
+  });
+
+  // Convert to array and sort
+  const sortedProducts = Object.values(productQuantities).sort((a, b) => b.totalQuantity - a.totalQuantity);
+
+  return json(sortedProducts);
 };
 
-// Products component to display product data
 export default function Products() {
-  const { edges: products } = useLoaderData();
+  const products = useLoaderData();
 
-  const rows = products.map(({ node: product }) => [
+  const rows = products.map(product => [
     <Thumbnail
-      source={product.images.edges[0]?.node.url || 'https://via.placeholder.com/150'}
-      alt={product.images.edges[0]?.node.altText || 'Product Image'}
+      source={product.imageUrl}
+      alt={product.imageAlt}
     />,
     product.title,
-    product.status,
-    `$${product.variants.edges[0]?.node.price || '0.00'}`, // Ensure price is formatted correctly
+    product.totalQuantity
   ]);
 
   return (
@@ -69,8 +87,8 @@ export default function Products() {
                 Products List
               </Text>
               <DataTable
-                columnContentTypes={['text', 'text', 'text', 'text']}
-                headings={['Image', 'Title', 'Status', 'Price']}
+                columnContentTypes={['text', 'text', 'text']}
+                headings={['Image', 'Title', 'Total Quantity Sold']}
                 rows={rows}
               />
             </Card>

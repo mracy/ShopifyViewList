@@ -9,7 +9,7 @@ export const loader = async ({ request }) => {
     const { admin } = await authenticate.admin(request);
     const response = await admin.graphql(`
       {
-        orders(first: 10) {
+        orders(first: 250) {
           edges {
             node {
               id
@@ -29,7 +29,7 @@ export const loader = async ({ request }) => {
               customer {
                 id
               }
-              lineItems(first: 10) {
+              lineItems(first: 250) {
                 edges {
                   node {
                     id
@@ -51,17 +51,30 @@ export const loader = async ({ request }) => {
 
     // Parse and format the response
     const responseJson = await response.json();
-    console.log(responseJson.data.orders.edges);
-    return json(responseJson.data.orders);
+    const orders = responseJson.data.orders.edges || [];
+
+    // Sort orders by total price in descending order
+    orders.sort((a, b) => {
+      const priceA = parseFloat(a.node.totalPriceSet.shopMoney.amount);
+      const priceB = parseFloat(b.node.totalPriceSet.shopMoney.amount);
+      return priceB - priceA; // Descending order
+    });
+
+    return json({ edges: orders });
   } catch (error) {
     console.error(error);
-    return json({ orders: [] }); // Return an empty array on error
+    return json({ edges: [] }); // Return an empty array on error
   }
 };
 
+
 // Orders component to display order data
 export default function Orders() {
-  const { edges: orders } = useLoaderData();
+  const data = useLoaderData();
+  console.log(data); // Inspect the data structure
+
+  // Check if orders and edges exist
+  const orders = data.edges || [];
 
   // Map order data to rows for DataTable
   const rows = orders.map(({ node: order }) => [
@@ -91,3 +104,4 @@ export default function Orders() {
     </Frame>
   );
 }
+
