@@ -3,7 +3,7 @@
 client_id = "d077eb9507c59b4fbeb53103efd6a579"
 name = "ViewList"
 handle = "customers-data"
-application_url = "https://brutal-rate-structural-attempting.trycloudflare.com"
+application_url = "https://preventing-hotmail-if-repository.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_customers,read_draft_orders,read_orders,read_products,write_custo
 
 [auth]
 redirect_urls = [
-  "https://brutal-rate-structural-attempting.trycloudflare.com/auth/callback",
-  "https://brutal-rate-structural-attempting.trycloudflare.com/auth/shopify/callback",
-  "https://brutal-rate-structural-attempting.trycloudflare.com/api/auth/callback"
+  "https://preventing-hotmail-if-repository.trycloudflare.com/auth/callback",
+  "https://preventing-hotmail-if-repository.trycloudflare.com/auth/shopify/callback",
+  "https://preventing-hotmail-if-repository.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
