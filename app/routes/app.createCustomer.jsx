@@ -1,7 +1,7 @@
 import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
-import { useState } from 'react';
-import { Form, TextField, Button, Page, Card, Layout, Toast } from '@shopify/polaris';
+import { useState, useCallback } from 'react';
+import { Form, TextField, Button, Page, Card, Layout, Toast, Frame } from '@shopify/polaris';
 import { useSubmit, useActionData } from '@remix-run/react';
 
 export const action = async ({ request }) => {
@@ -85,6 +85,7 @@ export default function CreateCustomerPage() {
   const [zip, setZip] = useState('');
   const [phone, setPhone] = useState('');
   const [toast, setToast] = useState({ active: false, message: '' });
+  const [showToast, setShowToast] = useState(false);
   const actionData = useActionData();
   const submit = useSubmit();
 
@@ -103,71 +104,77 @@ export default function CreateCustomerPage() {
 
     if (response.ok) {
       setToast({ active: true, message: 'Customer created successfully!' });
+      setShowToast(true);
     } else {
       setToast({ active: true, message: 'Customer creation failed.' });
+      setShowToast(true);
     }
   };
 
   // Handle toast visibility
-  const handleToastDismiss = () => setToast({ ...toast, active: false });
+  const handleToastDismiss = useCallback(() => setShowToast(false), []);
 
   return (
-    <Page title="Create Customer">
-      <Layout>
-        <Layout.Section>
-          <Card>
-            <Form onSubmit={handleSubmit}>
-              <TextField
-                label="First Name"
-                value={firstName}
-                onChange={(value) => setFirstName(value)}
-                required
-              />
-              <TextField
-                label="Last Name"
-                value={lastName}
-                onChange={(value) => setLastName(value)}
-                required
-              />
-              <TextField
-                label="Email"
-                value={email}
-                onChange={(value) => setEmail(value)}
-                type="email"
-                required
-              />
-              <TextField
-                label="Address"
-                value={address1}
-                onChange={(value) => setAddress1(value)}
-                required
-              />
-              <TextField
-                label="City"
-                value={city}
-                onChange={(value) => setCity(value)}
-                required
-              />
-              <TextField
-                label="Zip Code"
-                value={zip}
-                onChange={(value) => setZip(value)}
-                required
-              />
-              <TextField
-                label="Phone"
-                value={phone}
-                onChange={(value) => setPhone(value)}
-                required
-              />
-              <Button submit>Create Customer</Button>
-            </Form>
-          </Card>
-        </Layout.Section>
-      </Layout>
-      {toast.active && (
-        <Toast content={toast.message} onDismiss={handleToastDismiss} />
-      )}
-    </Page>
+    <div style={{ height: '250px' }}>
+      <Frame>
+        <Page title="Create Customer">
+          <Layout>
+            <Layout.Section>
+              <Card>
+                <Form onSubmit={handleSubmit}>
+                  <TextField
+                    label="First Name"
+                    value={firstName}
+                    onChange={(value) => setFirstName(value)}
+                    required
+                  />
+                  <TextField
+                    label="Last Name"
+                    value={lastName}
+                    onChange={(value) => setLastName(value)}
+                    required
+                  />
+                  <TextField
+                    label="Email"
+                    value={email}
+                    onChange={(value) => setEmail(value)}
+                    type="email"
+                    required
+                  />
+                  <TextField
+                    label="Address"
+                    value={address1}
+                    onChange={(value) => setAddress1(value)}
+                    required
+                  />
+                  <TextField
+                    label="City"
+                    value={city}
+                    onChange={(value) => setCity(value)}
+                    required
+                  />
+                  <TextField
+                    label="Zip Code"
+                    value={zip}
+                    onChange={(value) => setZip(value)}
+                    required
+                  />
+                  <TextField
+                    label="Phone"
+                    value={phone}
+                    onChange={(value) => setPhone(value)}
+                    required
+                  />
+                  <Button submit>Create Customer</Button>
+                </Form>
+              </Card>
+            </Layout.Section>
+          </Layout>
+          {showToast && (
+            <Toast content={toast.message} onDismiss={handleToastDismiss} />
+          )}
+        </Page>
+      </Frame>
+    </div>
   );
 }
