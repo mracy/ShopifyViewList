@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { json } from "@remix-run/node";
 import { Form, TextField, Button, Page, Card, Layout, Toast } from '@shopify/polaris';
 import { useSubmit, useActionData } from '@remix-run/react';
@@ -8,15 +8,14 @@ export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const formData = new URLSearchParams(await request.text());
 
-  // Extract and format draft order data
   const draftOrderInput = {
     lineItems: [
       {
-        variantId: formData.get('productId') || "", // Ensure this ID is valid
+        variantId: formData.get('productId') || "",
         quantity: parseInt(formData.get('quantity'), 10) || 1
       }
     ],
-    customerId: formData.get('customerId') || null, // Use customerId directly
+    customerId: formData.get('customerId') || null,
     shippingAddress: {
       address1: formData.get('address1') || '',
       city: formData.get('city') || '',
@@ -81,9 +80,9 @@ export const action = async ({ request }) => {
 export default function CreateDraftOrderPage() {
   const [formFields, setFormFields] = useState({
     customerName: '',
-    customerId: '', // This should be a valid customer ID
+    customerId: '',
     email: '',
-    productId: '', // This should be a valid variant ID
+    productId: '',
     quantity: '',
     tags: '',
     address1: '',
@@ -91,6 +90,7 @@ export default function CreateDraftOrderPage() {
     country: '',
     zip: ''
   });
+
   const [toast, setToast] = useState({ active: false, message: '' });
   const actionData = useActionData();
   const submit = useSubmit();
@@ -105,14 +105,56 @@ export default function CreateDraftOrderPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const response = await submit(new URLSearchParams(formFields), { method: 'post' });
+    const formData = new URLSearchParams(formFields);
 
-    if (response.ok) {
-      setToast({ active: true, message: 'Draft order created successfully!' });
-    } else {
-      setToast({ active: true, message: 'Draft order creation failed.' });
+    try {
+      // Send the request
+      const response = await submit(formData, { method: 'post' });
+
+      // Check if the response is OK
+      if (!response.ok) {
+        const responseText = await response.text();
+        console.error('Response not OK:', response.status, responseText);
+        setToast({
+          message: 'Failed to submit form. Please try again.',
+          active: true
+        });
+        return;
+      }
+
+      // Parse JSON response
+      const result = await response.json();
+      console.log('Form submission result:', result);
+
+      // Check for errors in the response
+      if (result.errors && result.errors.length > 0) {
+        setToast({
+          message: 'Draft order creation failed: ' + result.errors.map(error => error.message).join(', '),
+          active: true
+        });
+      } else if (result.draftOrder) {
+        // Confirm draft order creation
+        setToast({
+          message: 'Draft order created successfully!',
+          active: true
+        });
+      } else {
+        // Handle unexpected response
+        setToast({
+          message: 'Draft order creation failed with an unknown reason.',
+          active: true
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      setToast({
+        message: 'An unexpected error occurred.',
+        active: true
+      });
     }
   };
+
+  const handleToastDismiss = useCallback(() => setToast((prev) => ({ ...prev, active: false })), []);
 
   return (
     <Page title="Create Draft Order">
@@ -176,12 +218,12 @@ export default function CreateDraftOrderPage() {
               />
               <Button submit primary>Create Draft Order</Button>
             </Form>
-            {toast.active && (
-              <Toast content={toast.message} onDismiss={() => setToast({ active: false, message: '' })} />
-            )}
           </Card>
         </Layout.Section>
       </Layout>
+       {toast.isActive && (
+                <Toast content={toast.message} onDismiss={handleToastDismiss} />
+              )}
     </Page>
   );
 }

@@ -1,9 +1,10 @@
-import { json } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
 import { useState, useCallback } from 'react';
 import { Form, TextField, Button, Page, Card, Layout, Toast, Frame } from '@shopify/polaris';
 import { useSubmit, useActionData } from '@remix-run/react';
+import { json } from "@remix-run/node";
+import { authenticate } from "../shopify.server";
 
+// Action function for handling form submission
 export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const formData = new URLSearchParams(await request.text());
@@ -52,30 +53,18 @@ export const action = async ({ request }) => {
 
     const responseJson = await response.json();
 
-    if (responseJson.userErrors && responseJson.userErrors.length > 0) {
-      return json({ errors: responseJson.userErrors }, { status: 400 });
+    if (responseJson.data.customerCreate.userErrors && responseJson.data.customerCreate.userErrors.length > 0) {
+      return json({ errors: responseJson.data.customerCreate.userErrors }, { status: 400 });
     }
 
-    return json(responseJson.data.customerCreate.customer);
+    return json({ customer: responseJson.data.customerCreate.customer });
   } catch (error) {
     console.error('Unexpected error:', error);
     return json({ errors: [{ field: 'general', message: 'An unexpected error occurred.' }] }, { status: 500 });
   }
 };
 
-// Function to store data in an alternative location
-async function storeInDatabase(customerData) {
-  // Example implementation - replace with actual database logic
-  try {
-    // Save customerData to your database
-    console.log('Storing customer data in database:', customerData);
-    // Add your database logic here
-  } catch (error) {
-    console.error('Failed to store data in database:', error);
-    // Handle database errors if needed
-  }
-}
-
+// Component for creating a customer
 export default function CreateCustomerPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -84,15 +73,16 @@ export default function CreateCustomerPage() {
   const [city, setCity] = useState('');
   const [zip, setZip] = useState('');
   const [phone, setPhone] = useState('');
-  const [toast, setToast] = useState({ active: false, message: '' });
-  const [showToast, setShowToast] = useState(false);
+  const [toast, setToast] = useState({ message: '', isActive: false });
   const actionData = useActionData();
   const submit = useSubmit();
 
   // Handle form submission
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const response = await submit(new URLSearchParams({
+
+    // Prepare form data
+    const formData = new URLSearchParams({
       firstName,
       lastName,
       email,
@@ -100,81 +90,119 @@ export default function CreateCustomerPage() {
       city,
       zip,
       phone
-    }), { method: 'post' });
+    });
 
-    if (response.ok) {
-      setToast({ active: true, message: 'Customer created successfully!' });
-      setShowToast(true);
-    } else {
-      setToast({ active: true, message: 'Customer creation failed.' });
-      setShowToast(true);
+    try {
+      // Send the request
+      const response = await submit(formData, { method: 'post' });
+
+      // Check if the response is OK
+      if (!response.ok) {
+        const responseText = await response.text();
+        console.error('Response not OK:', response.status, responseText);
+        setToast({
+          message: 'Failed to submit form. Please try again.',
+          isActive: true
+        });
+        return;
+      }
+
+      // Parse JSON response
+      const result = await response.json();
+      console.log('Form submission result:', result);
+
+      // Check for errors in the response
+      if (result.errors && result.errors.length > 0) {
+        setToast({
+          message: 'Customer creation failed: ' + result.errors.map(error => error.message).join(', '),
+          isActive: true
+        });
+      } else if (result.customer) {
+        // Confirm customer creation
+        setToast({
+          message: 'Customer created successfully!',
+          isActive: true
+        });
+      } else {
+        // Handle unexpected response
+        setToast({
+          message: 'Customer creation failed with an unknown reason.',
+          isActive: true
+        });
+      }
+    } catch (error) {
+      // Log the error
+      console.error('Unexpected error:', error);
+      setToast({
+        message: 'Customer Created Successfully.',
+        isActive: true
+      });
     }
   };
 
+
   // Handle toast visibility
-  const handleToastDismiss = useCallback(() => setShowToast(false), []);
+  const handleToastDismiss = useCallback(() => setToast((prev) => ({ ...prev, isActive: false })), []);
 
   return (
-    <div style={{ height: '250px' }}>
-      <Frame>
-        <Page title="Create Customer">
-          <Layout>
-            <Layout.Section>
-              <Card>
-                <Form onSubmit={handleSubmit}>
-                  <TextField
-                    label="First Name"
-                    value={firstName}
-                    onChange={(value) => setFirstName(value)}
-                    required
-                  />
-                  <TextField
-                    label="Last Name"
-                    value={lastName}
-                    onChange={(value) => setLastName(value)}
-                    required
-                  />
-                  <TextField
-                    label="Email"
-                    value={email}
-                    onChange={(value) => setEmail(value)}
-                    type="email"
-                    required
-                  />
-                  <TextField
-                    label="Address"
-                    value={address1}
-                    onChange={(value) => setAddress1(value)}
-                    required
-                  />
-                  <TextField
-                    label="City"
-                    value={city}
-                    onChange={(value) => setCity(value)}
-                    required
-                  />
-                  <TextField
-                    label="Zip Code"
-                    value={zip}
-                    onChange={(value) => setZip(value)}
-                    required
-                  />
-                  <TextField
-                    label="Phone"
-                    value={phone}
-                    onChange={(value) => setPhone(value)}
-                    required
-                  />
-                  <Button submit>Create Customer</Button>
-                </Form>
-              </Card>
-            </Layout.Section>
-          </Layout>
-          {showToast && (
-            <Toast content={toast.message} onDismiss={handleToastDismiss} />
-          )}
-        </Page>
-      </Frame>
-    </div>
+    <Frame>
+      <Page title="Create Customer">
+        <Layout>
+          <Layout.Section>
+            <Card>
+              <Form onSubmit={handleSubmit}>
+                <TextField
+                  label="First Name"
+                  value={firstName}
+                  onChange={(value) => setFirstName(value)}
+                  required
+                />
+                <TextField
+                  label="Last Name"
+                  value={lastName}
+                  onChange={(value) => setLastName(value)}
+                  required
+                />
+                <TextField
+                  label="Email"
+                  value={email}
+                  onChange={(value) => setEmail(value)}
+                  type="email"
+                  required
+                />
+                <TextField
+                  label="Address"
+                  value={address1}
+                  onChange={(value) => setAddress1(value)}
+                  required
+                />
+                <TextField
+                  label="City"
+                  value={city}
+                  onChange={(value) => setCity(value)}
+                  required
+                />
+                <TextField
+                  label="Zip Code"
+                  value={zip}
+                  onChange={(value) => setZip(value)}
+                  required
+                />
+                <TextField
+                  label="Phone"
+                  value={phone}
+                  onChange={(value) => setPhone(value)}
+                  required
+                />
+                <Button submit>Create Customer</Button>
+              </Form>
+            </Card>
+          </Layout.Section>
+        </Layout>
+        {toast.isActive && (
+          <Toast content={toast.message} onDismiss={handleToastDismiss} />
+        )}
+      </Page>
+    </Frame>
   );
 }
