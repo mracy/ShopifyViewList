@@ -25,12 +25,16 @@ export default function App() {
         </Link>
 
         <Link to="/app/createCustomer">Create Customer</Link>
+        <Link to="/app/getAllCustomers">Get All Customer</Link>
         <Link to="/app/updateCustomer">Update Customer</Link>
+        <Link to="/app/deleteCustomer">Delete Customer</Link>
         <Link to="/app/createProduct">Create Product</Link>
         <Link to="/app/createOrder">Create Order</Link>
         <Link to="/app/products">Products</Link>
         <Link to="/app/customers">Customers</Link>
         <Link to="/app/orders">Orders</Link>
+        <Link to="/app/getAllOrders">Get All Orders</Link>
+        <Link to="/app/deleteOrder">Delete Order</Link>
         <Link to="/app/setting">Setting</Link>
 
       </NavMenu>
