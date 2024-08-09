@@ -34,6 +34,7 @@ export default function App() {
         <Link to="/app/customers">Customers</Link>
         <Link to="/app/orders">Orders</Link>
         <Link to="/app/getAllOrders">Get All Orders</Link>
+        <Link to="/app/updateDraftOrder">Update Order</Link>
         <Link to="/app/deleteOrder">Delete Order</Link>
         <Link to="/app/setting">Setting</Link>
 

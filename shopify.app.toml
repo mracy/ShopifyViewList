@@ -3,7 +3,7 @@
 client_id = "d077eb9507c59b4fbeb53103efd6a579"
 name = "ViewList"
 handle = "customers-data"
-application_url = "https://hardware-idaho-master-persian.trycloudflare.com"
+application_url = "https://hollywood-microphone-variance-therapeutic.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_customers,read_draft_orders,read_orders,read_products,write_custo
 
 [auth]
 redirect_urls = [
-  "https://hardware-idaho-master-persian.trycloudflare.com/auth/callback",
-  "https://hardware-idaho-master-persian.trycloudflare.com/auth/shopify/callback",
-  "https://hardware-idaho-master-persian.trycloudflare.com/api/auth/callback"
+  "https://hollywood-microphone-variance-therapeutic.trycloudflare.com/auth/callback",
+  "https://hollywood-microphone-variance-therapeutic.trycloudflare.com/auth/shopify/callback",
+  "https://hollywood-microphone-variance-therapeutic.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
