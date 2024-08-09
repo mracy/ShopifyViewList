@@ -13,6 +13,12 @@ export const loader = async ({ request }) => {
             id
             customer {
               id
+              displayName
+              email
+              phone
+              addresses {
+                address1
+              }
             }
             lineItems(first: 250) {
               edges {
@@ -43,11 +49,8 @@ export const loader = async ({ request }) => {
   `);
 
   const responseJson = await response.json();
-  console.log('Response JSON:', responseJson);
-
   const orders = responseJson.data.orders.edges;
 
-  // Aggregate spending by customer
   const customerSpending = {};
 
   orders.forEach(order => {
@@ -58,14 +61,17 @@ export const loader = async ({ request }) => {
     }
 
     const customerId = customer.id;
+
     if (!customerSpending[customerId]) {
       customerSpending[customerId] = {
         id: customerId,
+        displayName: customer.displayName || 'N/A',
+        email: customer.email || 'N/A',
+        phone: customer.phone || 'N/A',
+        addresses: customer.addresses.map(addr => addr.address1).join(', ') || 'N/A',
         totalSpent: 0
       };
     }
-
-    console.log('Processing order for customer:', customerId);
 
     order.node.lineItems.edges.forEach(lineItem => {
       const variant = lineItem.node.variant;
@@ -74,11 +80,8 @@ export const loader = async ({ request }) => {
         return;
       }
 
-      // Directly parse the price field
       const price = parseFloat(variant.price);
       const quantity = lineItem.node.quantity;
-
-      console.log(`Price: ${price}, Quantity: ${quantity}`);
 
       if (!isNaN(price) && !isNaN(quantity)) {
         customerSpending[customerId].totalSpent += price * quantity;
@@ -88,7 +91,6 @@ export const loader = async ({ request }) => {
     });
   });
 
-  // Convert to array and sort
   const sortedCustomers = Object.values(customerSpending).sort((a, b) => b.totalSpent - a.totalSpent);
 
   return json(sortedCustomers);
@@ -97,13 +99,14 @@ export const loader = async ({ request }) => {
 export default function Customers() {
   const customers = useLoaderData();
 
-  // Ensure rows include customer ID and formatted totalSpent
   const rows = customers.map(customer => [
-    customer.id, // Add customer ID
+    customer.id,
+    customer.displayName,
+    customer.email,
+    customer.phone,
+    customer.addresses,
     `$${(customer.totalSpent || 0).toFixed(2)}`
   ]);
-
-  console.log('Rows data:', rows);
 
   return (
     <Frame>
@@ -115,8 +118,8 @@ export default function Customers() {
                 Most Valuable Customers
               </Text>
               <DataTable
-                columnContentTypes={['text', 'text']}
-                headings={['Customer ID', 'Total Spent']} // Add headings for clarity
+                columnContentTypes={['text', 'text', 'text', 'text', 'text', 'text']}
+                headings={['Customer ID', 'Name', 'Email', 'Phone', 'Addresses', 'Total Spent']}
                 rows={rows}
               />
             </Card>

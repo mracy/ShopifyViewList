@@ -3,7 +3,7 @@
 client_id = "d077eb9507c59b4fbeb53103efd6a579"
 name = "ViewList"
 handle = "customers-data"
-application_url = "https://gun-worth-mechanical-represented.trycloudflare.com"
+application_url = "https://presently-viewed-expenses-planet.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_customers,read_draft_orders,read_orders,read_products,write_custo
 
 [auth]
 redirect_urls = [
-  "https://gun-worth-mechanical-represented.trycloudflare.com/auth/callback",
-  "https://gun-worth-mechanical-represented.trycloudflare.com/auth/shopify/callback",
-  "https://gun-worth-mechanical-represented.trycloudflare.com/api/auth/callback"
+  "https://presently-viewed-expenses-planet.trycloudflare.com/auth/callback",
+  "https://presently-viewed-expenses-planet.trycloudflare.com/auth/shopify/callback",
+  "https://presently-viewed-expenses-planet.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
