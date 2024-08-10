@@ -9,94 +9,91 @@ export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
 
-  const products = [
-    {
-      title: formData.get('title'),
-      vendor: formData.get('vendor'),
-      productType: formData.get('productType'),
-      tags: formData.get('tags').split(','), // Split tags by comma
-      variants: [
-        {
-          option1: formData.get('option1'),
-          price: formData.get('price'),
-          sku: formData.get('sku'),
-          inventoryQuantity: parseInt(formData.get('inventoryQuantity'), 10),
-          weight: formData.get('weight'),
-          weightUnit: formData.get('weightUnit'),
-        }
-      ]
-    }
-  ];
+  const productInput = {
+    title: formData.get('title'),
+    vendor: formData.get('vendor'),
+    productType: formData.get('productType'),
+    tags: formData.get('tags').split(','), // Split tags by comma
+  };
+
+  const variantInput = {
+    option1: formData.get('option1'),
+    price: formData.get('price'),
+    sku: formData.get('sku'),
+    inventoryQuantity: parseInt(formData.get('inventoryQuantity'), 10),
+    weight: formData.get('weight'),
+    weightUnit: formData.get('weightUnit'),
+  };
 
   try {
-    for (const product of products) {
-      // Step 1: Create a Product
-      const productResponse = await admin.graphql(`
-        mutation productCreate($input: ProductInput!) {
-          productCreate(input: $input) {
-            product {
-              id
-            }
-            userErrors {
-              field
-              message
-            }
+    // Step 1: Create a Product
+    const productResponse = await admin.graphql(`
+      mutation productCreate($input: ProductInput!) {
+        productCreate(input: $input) {
+          product {
+            id
+          }
+          userErrors {
+            field
+            message
           }
         }
-      `, {
-        variables: { input: {
-          title: product.title,
-          vendor: product.vendor,
-          productType: product.productType,
-          tags: product.tags
-        }}
-      });
-
-      const productResponseJson = await productResponse.json();
-
-      if (productResponseJson.userErrors && productResponseJson.userErrors.length > 0) {
-        return json({ errors: productResponseJson.userErrors }, { status: 400 });
       }
+    `, {
+      variables: { input: productInput }
+    });
 
-      const productId = productResponseJson.data.productCreate.product.id;
+    const productResponseJson = await productResponse.json();
 
-      // Step 2: Create Product Variants
-      const variantsInput = product.variants.map(variant => ({
-        option1: variant.option1,
-        price: variant.price,
-        sku: variant.sku,
-        inventoryQuantity: variant.inventoryQuantity,
-        weight: variant.weight,
-        weightUnit: variant.weightUnit,
-      }));
-
-      const variantsResponse = await admin.graphql(`
-        mutation productVariantCreate($productId: ID!, $input: [ProductVariantInput!]!) {
-          productVariantCreate(productId: $productId, input: $input) {
-            product {
-              id
-            }
-            productVariants {
-              id
-            }
-            userErrors {
-              field
-              message
-            }
-          }
-        }
-      `, {
-        variables: { productId, input: variantsInput }
-      });
-
-      const variantsResponseJson = await variantsResponse.json();
-
-      if (variantsResponseJson.userErrors && variantsResponseJson.userErrors.length > 0) {
-        return json({ errors: variantsResponseJson.userErrors }, { status: 400 });
-      }
+    if (productResponseJson.userErrors && productResponseJson.userErrors.length > 0) {
+      return json({ errors: productResponseJson.userErrors }, { status: 400 });
     }
 
-    return json({ message: "Products and variants created successfully." });
+    const productId = productResponseJson.data.productCreate.product.id;
+
+    // Step 2: Create Product Variant
+    const variantsResponse = await admin.graphql(`
+      mutation productVariantCreate($input: ProductVariantInput!) {
+        productVariantCreate(input: $input) {
+          product {
+            id
+            title
+          }
+          productVariant {
+            createdAt
+            displayName
+            id
+            inventoryItem {
+              unitCost {
+                amount
+              }
+              tracked
+            }
+            inventoryPolicy
+            inventoryQuantity
+            price
+            product {
+              id
+            }
+            title
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `, {
+      variables: { input: { ...variantInput, productId } }
+    });
+
+    const variantsResponseJson = await variantsResponse.json();
+
+    if (variantsResponseJson.userErrors && variantsResponseJson.userErrors.length > 0) {
+      return json({ errors: variantsResponseJson.userErrors }, { status: 400 });
+    }
+
+    return json({ message: "Product and variant created successfully." });
   } catch (error) {
     console.error('Unexpected error:', error);
     return json({ errors: [{ field: 'general', message: 'An unexpected error occurred.' }] }, { status: 500 });
@@ -148,7 +145,7 @@ export default function CreateProductPage() {
 
               {/* Variant Fields */}
               <TextField label="Option 1" value={formData.option1} onChange={handleChange('option1')} required />
-              <TextField label="Price" value={formData.price} onChange={handleChange('price')} type="number" required />
+              <TextField label="Price" value={formData.price} onChange={handleChange('price')} type="number" step="0.01" required />
               <TextField label="SKU" value={formData.sku} onChange={handleChange('sku')} required />
               <TextField label="Inventory Quantity" value={formData.inventoryQuantity} onChange={handleChange('inventoryQuantity')} type="number" required />
               <TextField label="Weight" value={formData.weight} onChange={handleChange('weight')} required />

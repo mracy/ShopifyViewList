@@ -134,7 +134,7 @@ export default function CreateCustomerPage() {
       // Log the error
       console.error('Unexpected error:', error);
       setToast({
-        message: 'Customer Created Successfully.',
+        message: 'I need to fix it ASAP.',
         isActive: true
       });
     }
