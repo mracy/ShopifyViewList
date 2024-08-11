@@ -43,7 +43,8 @@ export const loader = async ({ request }) => {
 export default function Customers() {
   const customers = useLoaderData();
 
-  const rows = customers.map(customer => [
+  const rows = customers.map((customer, index) => [
+    index + 1, // Serial Number
     customer.id,
     customer.displayName,
     customer.email,
@@ -61,8 +62,8 @@ export default function Customers() {
                 All Customers
               </Text>
               <DataTable
-                columnContentTypes={['text', 'text', 'text', 'text', 'text']}
-                headings={['Customer ID', 'Name', 'Email', 'Phone', 'Addresses']}
+                columnContentTypes={['text', 'text', 'text', 'text', 'text', 'text']}
+                headings={['S.N', 'Customer ID', 'Name', 'Email', 'Phone', 'Addresses']}
                 rows={rows}
               />
             </Card>

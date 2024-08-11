@@ -3,7 +3,7 @@
 client_id = "d077eb9507c59b4fbeb53103efd6a579"
 name = "ViewList"
 handle = "customers-data"
-application_url = "https://dom-reed-treasury-play.trycloudflare.com"
+application_url = "https://elections-meetup-birds-outdoors.trycloudflare.com"
 embedded = true
 
 [build]
@@ -13,13 +13,13 @@ include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_customers,read_draft_orders,read_inventory,read_locations,read_orders,read_products,write_customers,write_draft_orders,write_inventory,write_locations,write_orders,write_products"
+scopes = "read_customers,read_draft_orders,read_files,read_inventory,read_locations,read_orders,read_products,read_themes,write_customers,write_draft_orders,write_files,write_inventory,write_locations,write_orders,write_products,write_themes"
 
 [auth]
 redirect_urls = [
-  "https://dom-reed-treasury-play.trycloudflare.com/auth/callback",
-  "https://dom-reed-treasury-play.trycloudflare.com/auth/shopify/callback",
-  "https://dom-reed-treasury-play.trycloudflare.com/api/auth/callback"
+  "https://elections-meetup-birds-outdoors.trycloudflare.com/auth/callback",
+  "https://elections-meetup-birds-outdoors.trycloudflare.com/auth/shopify/callback",
+  "https://elections-meetup-birds-outdoors.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

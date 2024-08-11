@@ -67,7 +67,6 @@ export const loader = async ({ request }) => {
   }
 };
 
-
 // Orders component to display order data
 export default function Orders() {
   const data = useLoaderData();
@@ -77,10 +76,11 @@ export default function Orders() {
   const orders = data.edges || [];
 
   // Map order data to rows for DataTable
-  const rows = orders.map(({ node: order }) => [
-    order.id,
-    new Date(order.createdAt).toLocaleDateString(), // Format the date
-    order.totalPriceSet.shopMoney.amount + ' ' + order.totalPriceSet.shopMoney.currencyCode // Display total price
+  const rows = orders.map((order, index) => [
+    index + 1, // Serial Number
+    order.node.id,
+    new Date(order.node.createdAt).toLocaleDateString(), // Format the date
+    order.node.totalPriceSet.shopMoney.amount + ' ' + order.node.totalPriceSet.shopMoney.currencyCode // Display total price
   ]);
 
   return (
@@ -93,8 +93,8 @@ export default function Orders() {
                 Orders List
               </Text>
               <DataTable
-                columnContentTypes={['text', 'text', 'text']}
-                headings={['ID', 'Created At', 'Total Price']}
+                columnContentTypes={['text', 'text', 'text', 'text']}
+                headings={['S.N', 'ID', 'Created At', 'Total Price']}
                 rows={rows}
               />
             </Card>
@@ -104,4 +104,3 @@ export default function Orders() {
     </Frame>
   );
 }
-

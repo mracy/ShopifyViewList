@@ -3,9 +3,48 @@ import { authenticate } from "../shopify.server";
 import { Card, DataTable, Frame, Layout, Page, Text } from "@shopify/polaris";
 import { useLoaderData } from "@remix-run/react";
 
+// Helper function to fetch all customers
+const fetchAllCustomers = async (admin) => {
+  let allCustomers = [];
+  let hasNextPage = true;
+  let cursor = null;
+
+  while (hasNextPage) {
+    const response = await admin.graphql(`
+      query {
+        customers(first: 250${cursor ? `, after: "${cursor}"` : ''}) {
+          edges {
+            node {
+              id
+              displayName
+              email
+              phone
+              addresses {
+                address1
+              }
+            }
+          }
+          pageInfo {
+            hasNextPage
+          }
+        }
+      }
+    `);
+    const jsonResponse = await response.json();
+    const data = jsonResponse.data.customers.edges;
+    allCustomers = [...allCustomers, ...data];
+    hasNextPage = jsonResponse.data.customers.pageInfo.hasNextPage;
+    cursor = data.length ? data[data.length - 1].cursor : null;
+  }
+
+  return allCustomers;
+};
+
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
-  const response = await admin.graphql(`
+
+  // Fetch orders
+  const ordersResponse = await admin.graphql(`
     query {
       orders(first: 250) {
         edges {
@@ -23,22 +62,10 @@ export const loader = async ({ request }) => {
             lineItems(first: 250) {
               edges {
                 node {
-                  product {
-                    id
-                    title
-                    images(first: 1) {
-                      edges {
-                        node {
-                          url
-                          altText
-                        }
-                      }
-                    }
-                  }
-                  quantity
                   variant {
                     price
                   }
+                  quantity
                 }
               }
             }
@@ -47,9 +74,8 @@ export const loader = async ({ request }) => {
       }
     }
   `);
-
-  const responseJson = await response.json();
-  const orders = responseJson.data.orders.edges;
+  const ordersJson = await ordersResponse.json();
+  const orders = ordersJson.data.orders.edges;
 
   const customerSpending = {};
 
@@ -91,7 +117,26 @@ export const loader = async ({ request }) => {
     });
   });
 
-  const sortedCustomers = Object.values(customerSpending).sort((a, b) => b.totalSpent - a.totalSpent);
+  // Fetch all customers
+  const allCustomersResponse = await fetchAllCustomers(admin);
+  const allCustomerData = allCustomersResponse.map(cust => ({
+    id: cust.node.id,
+    displayName: cust.node.displayName || 'N/A',
+    email: cust.node.email || 'N/A',
+    phone: cust.node.phone || 'N/A',
+    addresses: cust.node.addresses.map(addr => addr.address1).join(', ') || 'N/A',
+    totalSpent: 0 // Initialize with 0, will be updated if found in orders
+  }));
+
+  // Combine customer spending data with all customers
+  allCustomerData.forEach(customer => {
+    if (customerSpending[customer.id]) {
+      customer.totalSpent = customerSpending[customer.id].totalSpent;
+    }
+  });
+
+  // Sort customers by total spending in descending order
+  const sortedCustomers = allCustomerData.sort((a, b) => b.totalSpent - a.totalSpent);
 
   return json(sortedCustomers);
 };
@@ -99,7 +144,9 @@ export const loader = async ({ request }) => {
 export default function Customers() {
   const customers = useLoaderData();
 
-  const rows = customers.map(customer => [
+  // Prepare rows with serial numbers
+  const rows = customers.map((customer, index) => [
+    index + 1, // Serial Number
     customer.id,
     customer.displayName,
     customer.email,
@@ -118,8 +165,8 @@ export default function Customers() {
                 Most Valuable Customers
               </Text>
               <DataTable
-                columnContentTypes={['text', 'text', 'text', 'text', 'text', 'text']}
-                headings={['Customer ID', 'Name', 'Email', 'Phone', 'Addresses', 'Total Spent']}
+                columnContentTypes={['text', 'text', 'text', 'text', 'text', 'text', 'text']}
+                headings={['S.N.', 'Customer ID', 'Name', 'Email', 'Phone', 'Addresses', 'Total Spent']}
                 rows={rows}
               />
             </Card>

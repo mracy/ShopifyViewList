@@ -6,25 +6,25 @@ import { authenticate } from "../shopify.server";
 
 // Action function for handling form submission
 export const action = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
-  const formData = new URLSearchParams(await request.text());
-
-  const input = {
-    email: formData.get('email'),
-    firstName: formData.get('firstName'),
-    lastName: formData.get('lastName'),
-    addresses: [
-      {
-        address1: formData.get('address1'),
-        city: formData.get('city'),
-        zip: formData.get('zip'),
-        country: 'US'
-      }
-    ],
-    phone: formData.get('phone')
-  };
-
   try {
+    const { admin } = await authenticate.admin(request);
+    const formData = new URLSearchParams(await request.text());
+
+    const input = {
+      email: formData.get('email'),
+      firstName: formData.get('firstName'),
+      lastName: formData.get('lastName'),
+      addresses: [
+        {
+          address1: formData.get('address1'),
+          city: formData.get('city'),
+          zip: formData.get('zip'),
+          country: 'US'
+        }
+      ],
+      phone: formData.get('phone')
+    };
+
     const response = await admin.graphql(`
       mutation customerCreate($input: CustomerInput!) {
         customerCreate(input: $input) {
@@ -54,17 +54,17 @@ export const action = async ({ request }) => {
     const responseJson = await response.json();
 
     if (responseJson.data.customerCreate.userErrors && responseJson.data.customerCreate.userErrors.length > 0) {
-      return json({ errors: responseJson.data.customerCreate.userErrors }, { status: 400 });
+      return json({ message: 'Customer creation failed.' }, { status: 400 });
     }
 
-    return json({ customer: responseJson.data.customerCreate.customer });
+    return json({ message: 'Customer created successfully!' });
   } catch (error) {
     console.error('Unexpected error:', error);
-    return json({ errors: [{ field: 'general', message: 'An unexpected error occurred.' }] }, { status: 500 });
+    return json({ message: 'An unexpected error occurred.' }, { status: 500 });
   }
 };
 
-// Component for creating a customer
+
 export default function CreateCustomerPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -96,9 +96,13 @@ export default function CreateCustomerPage() {
       // Send the request
       const response = await submit(formData, { method: 'post' });
 
+      // Log response status and text for debugging
+      console.log('Response status:', response.status);
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+
       // Check if the response is OK
       if (!response.ok) {
-        const responseText = await response.text();
         console.error('Response not OK:', response.status, responseText);
         setToast({
           message: 'Failed to submit form. Please try again.',
@@ -108,38 +112,23 @@ export default function CreateCustomerPage() {
       }
 
       // Parse JSON response
-      const result = await response.json();
+      const result = JSON.parse(responseText);
       console.log('Form submission result:', result);
 
-      // Check for errors in the response
-      if (result.errors && result.errors.length > 0) {
-        setToast({
-          message: 'Customer creation failed: ' + result.errors.map(error => error.message).join(', '),
-          isActive: true
-        });
-      } else if (result.customer) {
-        // Confirm customer creation
-        setToast({
-          message: 'Customer created successfully!',
-          isActive: true
-        });
-      } else {
-        // Handle unexpected response
-        setToast({
-          message: 'Customer creation failed with an unknown reason.',
-          isActive: true
-        });
-      }
+      // Set appropriate toast message based on the response
+      setToast({
+        message: result.message || 'Customer creation failed with an unknown reason.',
+        isActive: true
+      });
     } catch (error) {
       // Log the error
       console.error('Unexpected error:', error);
       setToast({
-        message: 'I need to fix it ASAP.',
+        message: 'An unexpected error occurred.',
         isActive: true
       });
     }
   };
-
 
   // Handle toast visibility
   const handleToastDismiss = useCallback(() => setToast((prev) => ({ ...prev, isActive: false })), []);

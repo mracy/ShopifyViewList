@@ -8,7 +8,7 @@ export const loader = async ({ request }) => {
   try {
     const { admin } = await authenticate.admin(request);
 
-    // Fetch orders and draft orders
+    // Fetch orders and draft orders with total price, customer details, and line items
     const ordersResponse = await admin.graphql(`
       {
         orders(first: 250) {
@@ -16,8 +16,6 @@ export const loader = async ({ request }) => {
             node {
               id
               name
-              createdAt
-              updatedAt
               totalPriceSet {
                 shopMoney {
                   amount
@@ -25,14 +23,20 @@ export const loader = async ({ request }) => {
                 }
               }
               customer {
-                id
+                firstName
+                lastName
               }
               lineItems(first: 250) {
                 edges {
                   node {
                     id
-                    title
-                    quantity
+                    variant {
+                      id
+                    }
+                    product {
+                      id
+                      title
+                    }
                   }
                 }
               }
@@ -49,8 +53,6 @@ export const loader = async ({ request }) => {
             node {
               id
               name
-              createdAt
-              updatedAt
               totalPriceSet {
                 shopMoney {
                   amount
@@ -58,14 +60,20 @@ export const loader = async ({ request }) => {
                 }
               }
               customer {
-                id
+                firstName
+                lastName
               }
               lineItems(first: 250) {
                 edges {
                   node {
                     id
-                    title
-                    quantity
+                    variant {
+                      id
+                    }
+                    product {
+                      id
+                      title
+                    }
                   }
                 }
               }
@@ -87,20 +95,7 @@ export const loader = async ({ request }) => {
     const orders = ordersJson.data.orders.edges || [];
     const draftOrders = draftOrdersJson.data.draftOrders.edges || [];
 
-    // Sort orders by total price in descending order
-    orders.sort((a, b) => {
-      const priceA = parseFloat(a.node.totalPriceSet.shopMoney.amount);
-      const priceB = parseFloat(b.node.totalPriceSet.shopMoney.amount);
-      return priceB - priceA; // Descending order
-    });
-
-    // Sort draft orders by total price in descending order
-    draftOrders.sort((a, b) => {
-      const priceA = parseFloat(a.node.totalPriceSet.shopMoney.amount);
-      const priceB = parseFloat(b.node.totalPriceSet.shopMoney.amount);
-      return priceB - priceA; // Descending order
-    });
-
+    // Return data
     return json({ orders, draftOrders });
   } catch (error) {
     console.error(error);
@@ -108,22 +103,59 @@ export const loader = async ({ request }) => {
   }
 };
 
+// Function to format line items into a serial-numbered list with line breaks
+const formatLineItems = (lineItems) => {
+  return lineItems.map((item, index) => (
+    <p key={item.variantId}>
+      {`${index + 1}. Product Title: ${item.productTitle}, Product ID: ${item.productId}, Variant ID: ${item.variantId}`}
+    </p>
+  ));
+};
+
 // Orders component to display order data
 export default function Orders() {
   const { orders, draftOrders } = useLoaderData();
 
-  // Map order data to rows for DataTable
-  const orderRows = orders.map(({ node: order }) => [
-    order.id,
-    new Date(order.createdAt).toLocaleDateString(), // Format the date
-    order.totalPriceSet.shopMoney.amount + ' ' + order.totalPriceSet.shopMoney.currencyCode // Display total price
-  ]);
+  // Map order data to rows for DataTable with Serial Number
+  const orderRows = orders.map((order, index) => {
+    // Get product and variant IDs from line items
+    const lineItems = order.node.lineItems.edges.map(lineItem => {
+      return {
+        variantId: lineItem.node.variant.id,
+        productId: lineItem.node.product.id,
+        productTitle: lineItem.node.product.title // Include product title
+      };
+    });
 
-  const draftOrderRows = draftOrders.map(({ node: draftOrder }) => [
-    draftOrder.id,
-    new Date(draftOrder.createdAt).toLocaleDateString(), // Format the date
-    draftOrder.totalPriceSet.shopMoney.amount + ' ' + draftOrder.totalPriceSet.shopMoney.currencyCode // Display total price
-  ]);
+    return [
+      index + 1, // Serial Number
+      order.node.id,
+      order.node.name,
+      order.node.customer ? `${order.node.customer.firstName} ${order.node.customer.lastName}` : 'N/A', // Customer Name
+      order.node.totalPriceSet.shopMoney.amount + ' ' + order.node.totalPriceSet.shopMoney.currencyCode, // Display total price
+      formatLineItems(lineItems) // Product and Variant IDs with line breaks
+    ];
+  });
+
+  const draftOrderRows = draftOrders.map((draftOrder, index) => {
+    // Get product and variant IDs from line items
+    const lineItems = draftOrder.node.lineItems.edges.map(lineItem => {
+      return {
+        variantId: lineItem.node.variant.id,
+        productId: lineItem.node.product.id,
+        productTitle: lineItem.node.product.title // Include product title
+      };
+    });
+
+    return [
+      index + 1, // Serial Number
+      draftOrder.node.id,
+      draftOrder.node.name,
+      draftOrder.node.customer ? `${draftOrder.node.customer.firstName} ${draftOrder.node.customer.lastName}` : 'N/A', // Customer Name
+      draftOrder.node.totalPriceSet.shopMoney.amount + ' ' + draftOrder.node.totalPriceSet.shopMoney.currencyCode, // Display total price
+      formatLineItems(lineItems) // Product and Variant IDs with line breaks
+    ];
+  });
 
   return (
     <Frame>
@@ -135,9 +167,13 @@ export default function Orders() {
                 Orders List
               </Text>
               <DataTable
-                columnContentTypes={['text', 'text', 'text']}
-                headings={['ID', 'Created At', 'Total Price']}
+                columnContentTypes={['text', 'text', 'text', 'text', 'text', 'text']}
+                headings={['S.N', 'ID', 'Name', 'Customer Name', 'Total Price', 'Products & Variants']}
                 rows={orderRows}
+                // Allows HTML content in cells
+                rowMarkup={(row) => row.map((cell, i) => (
+                  <td key={i} dangerouslySetInnerHTML={{ __html: cell }} />
+                ))}
               />
             </Card>
           </Layout.Section>
@@ -147,9 +183,13 @@ export default function Orders() {
                 Draft Orders List
               </Text>
               <DataTable
-                columnContentTypes={['text', 'text', 'text']}
-                headings={['ID', 'Created At', 'Total Price']}
+                columnContentTypes={['text', 'text', 'text', 'text', 'text', 'text']}
+                headings={['S.N', 'ID', 'Name', 'Customer Name', 'Total Price', 'Products & Variants']}
                 rows={draftOrderRows}
+                // Allows HTML content in cells
+                rowMarkup={(row) => row.map((cell, i) => (
+                  <td key={i} dangerouslySetInnerHTML={{ __html: cell }} />
+                ))}
               />
             </Card>
           </Layout.Section>

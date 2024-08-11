@@ -1,7 +1,7 @@
 import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { useState } from 'react';
-import { Form, TextField, Button, Page, Card, Layout, Toast } from '@shopify/polaris';
+import { Form, TextField, Button, Page, Card, Layout, Toast, DropZone } from '@shopify/polaris';
 import { useSubmit, useActionData } from '@remix-run/react';
 
 // Server-Side Logic for Product and Variant Creation
@@ -93,7 +93,54 @@ export const action = async ({ request }) => {
       return json({ errors: variantsResponseJson.userErrors }, { status: 400 });
     }
 
-    return json({ message: "Product and variant created successfully." });
+    // Step 3: Upload Images (if any)
+    const images = formData.getAll('images');
+    if (images.length > 0) {
+      const imageUploadPromises = images.map(async (file) => {
+        const imageData = await file.arrayBuffer();
+        const base64Image = Buffer.from(imageData).toString('base64');
+        const uploadResponse = await admin.graphql(`
+          mutation productAppendImages($input: ProductAppendImagesInput!) {
+            productAppendImages(input: $input) {
+              newImages {
+                id
+                altText
+              }
+              product {
+                id
+              }
+              userErrors {
+                field
+                message
+              }
+            }
+          }
+        `, {
+          variables: {
+            input: {
+              id: productId,
+              images: [
+                {
+                  altText: 'Uploaded image',
+                  src: `data:image/${file.type.split('/')[1]};base64,${base64Image}`
+                }
+              ]
+            }
+          }
+        });
+
+        return uploadResponse.json();
+      });
+
+      const imageUploadResponses = await Promise.all(imageUploadPromises);
+
+      const imageUploadErrors = imageUploadResponses.flatMap(response => response.userErrors || []);
+      if (imageUploadErrors.length > 0) {
+        return json({ errors: imageUploadErrors }, { status: 400 });
+      }
+    }
+
+    return json({ message: "Product, variant, and images created successfully." });
   } catch (error) {
     console.error('Unexpected error:', error);
     return json({ errors: [{ field: 'general', message: 'An unexpected error occurred.' }] }, { status: 500 });
@@ -106,6 +153,7 @@ export default function CreateProductPage() {
     title: '', vendor: '', productType: '', tags: '',
     option1: '', price: '', sku: '', inventoryQuantity: '', weight: '', weightUnit: '',
   });
+  const [files, setFiles] = useState([]);
   const [toast, setToast] = useState({ active: false, message: '' });
   const actionData = useActionData();
   const submit = useSubmit();
@@ -114,13 +162,19 @@ export default function CreateProductPage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleFilesDrop = (newFiles) => {
+    setFiles(prevFiles => [...prevFiles, ...newFiles]);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     const form = new FormData();
 
     Object.keys(formData).forEach(key => form.append(key, formData[key]));
 
-    const response = await submit(form, { method: 'post' });
+    files.forEach(file => form.append('images', file));
+
+    const response = await submit(form, { method: 'post', encType: 'multipart/form-data' });
 
     if (response.ok) {
       setToast({ active: true, message: 'Product and variant created successfully!' });
@@ -132,7 +186,7 @@ export default function CreateProductPage() {
   const handleToastDismiss = () => setToast({ ...toast, active: false });
 
   return (
-    <Page title="Create Product and Variant">
+    <Page title="Create Product">
       <Layout>
         <Layout.Section>
           <Card>
@@ -150,6 +204,14 @@ export default function CreateProductPage() {
               <TextField label="Inventory Quantity" value={formData.inventoryQuantity} onChange={handleChange('inventoryQuantity')} type="number" required />
               <TextField label="Weight" value={formData.weight} onChange={handleChange('weight')} required />
               <TextField label="Weight Unit" value={formData.weightUnit} onChange={handleChange('weightUnit')} required />
+
+              {/* File Upload */}
+              <DropZone
+                onDrop={handleFilesDrop}
+                allowMultiple
+                dropZoneContent="Drop your product images here"
+                type="image"
+              />
 
               {/* Submit Button */}
               <Button submit>Submit</Button>

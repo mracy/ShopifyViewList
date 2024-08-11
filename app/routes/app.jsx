@@ -29,6 +29,8 @@ export default function App() {
         <Link to="/app/updateCustomer">Update Customer</Link>
         <Link to="/app/deleteCustomer">Delete Customer</Link>
         <Link to="/app/createProduct">Create Product</Link>
+        <Link to="/app/createProductsVariants">Create Products Variants</Link>
+        <Link to="/app/deleteProductAndVariants">Delete Products & Variants</Link>
         <Link to="/app/createOrder">Create Order</Link>
         <Link to="/app/products">Products</Link>
         <Link to="/app/customers">Customers</Link>
