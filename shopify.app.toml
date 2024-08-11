@@ -3,7 +3,7 @@
 client_id = "d077eb9507c59b4fbeb53103efd6a579"
 name = "ViewList"
 handle = "customers-data"
-application_url = "https://elections-meetup-birds-outdoors.trycloudflare.com"
+application_url = "https://und-agreed-macedonia-followed.trycloudflare.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_customers,read_draft_orders,read_files,read_inventory,read_locati
 
 [auth]
 redirect_urls = [
-  "https://elections-meetup-birds-outdoors.trycloudflare.com/auth/callback",
-  "https://elections-meetup-birds-outdoors.trycloudflare.com/auth/shopify/callback",
-  "https://elections-meetup-birds-outdoors.trycloudflare.com/api/auth/callback"
+  "https://und-agreed-macedonia-followed.trycloudflare.com/auth/callback",
+  "https://und-agreed-macedonia-followed.trycloudflare.com/auth/shopify/callback",
+  "https://und-agreed-macedonia-followed.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

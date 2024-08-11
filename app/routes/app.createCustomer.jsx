@@ -1,8 +1,12 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Form, TextField, Button, Page, Card, Layout, Toast, Frame } from '@shopify/polaris';
 import { useSubmit, useActionData } from '@remix-run/react';
-import { json } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
+import { json } from '@remix-run/node';
+import { PrismaClient } from '@prisma/client';
+import { authenticate } from '../shopify.server';
+
+// Initialize Prisma client
+const prisma = new PrismaClient();
 
 // Action function for handling form submission
 export const action = async ({ request }) => {
@@ -25,6 +29,7 @@ export const action = async ({ request }) => {
       phone: formData.get('phone')
     };
 
+    // Save to Shopify
     const response = await admin.graphql(`
       mutation customerCreate($input: CustomerInput!) {
         customerCreate(input: $input) {
@@ -54,7 +59,34 @@ export const action = async ({ request }) => {
     const responseJson = await response.json();
 
     if (responseJson.data.customerCreate.userErrors && responseJson.data.customerCreate.userErrors.length > 0) {
-      return json({ message: 'Customer creation failed.' }, { status: 400 });
+      return json({ message: 'Customer creation failed in Shopify.' }, { status: 400 });
+    }
+
+    // Save to SQLite database
+    try {
+      await prisma.customer.create({
+        data: {
+          shopifyCustomerId: responseJson.data.customerCreate.customer.id,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          email: input.email,
+          phone: input.phone, // Ensure this field is defined in your Prisma schema
+          addresses: {
+            create: input.addresses.map((address) => ({
+              street: address.address1,
+              city: address.city,
+              state: address.state || '', // Handle optional state
+              postalCode: address.zip,
+              country: address.country
+            }))
+          }
+        }
+      });
+      
+      console.log('Customer successfully added to database');
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      return json({ message: 'Failed to save customer to the database.' }, { status: 500 });
     }
 
     return json({ message: 'Customer created successfully!' });
@@ -64,7 +96,7 @@ export const action = async ({ request }) => {
   }
 };
 
-
+// CreateCustomerPage Component
 export default function CreateCustomerPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -77,11 +109,9 @@ export default function CreateCustomerPage() {
   const actionData = useActionData();
   const submit = useSubmit();
 
-  // Handle form submission
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    // Prepare form data
     const formData = new URLSearchParams({
       firstName,
       lastName,
@@ -93,15 +123,9 @@ export default function CreateCustomerPage() {
     });
 
     try {
-      // Send the request
       const response = await submit(formData, { method: 'post' });
-
-      // Log response status and text for debugging
-      console.log('Response status:', response.status);
       const responseText = await response.text();
-      console.log('Response text:', responseText);
 
-      // Check if the response is OK
       if (!response.ok) {
         console.error('Response not OK:', response.status, responseText);
         setToast({
@@ -111,17 +135,12 @@ export default function CreateCustomerPage() {
         return;
       }
 
-      // Parse JSON response
       const result = JSON.parse(responseText);
-      console.log('Form submission result:', result);
-
-      // Set appropriate toast message based on the response
       setToast({
         message: result.message || 'Customer creation failed with an unknown reason.',
         isActive: true
       });
     } catch (error) {
-      // Log the error
       console.error('Unexpected error:', error);
       setToast({
         message: 'An unexpected error occurred.',
@@ -130,7 +149,6 @@ export default function CreateCustomerPage() {
     }
   };
 
-  // Handle toast visibility
   const handleToastDismiss = useCallback(() => setToast((prev) => ({ ...prev, isActive: false })), []);
 
   return (
